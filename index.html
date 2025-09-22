@@ -17,19 +17,18 @@
   <button id="retry" class="btn" style="display:none;">Allow Location</button>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const barcode = params.get('catracBarcode') || params.get('b') || '';
-    const assetId = params.get('assetId') || '';
-    const formBase = 'https://form.jotform.com/252387737300054'; // <-- change this
+    const params    = new URLSearchParams(location.search);
+    const barcode   = params.get('catracBarcode') || params.get('b') || '';
+    const assetName = params.get('assetName') || '';   // switched to assetName
+    const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your form ID
 
     const statusEl = document.getElementById('status');
     const retryBtn = document.getElementById('retry');
 
     function next(lat, lon, acc) {
       const u = new URL(formBase);
-      // Pass through the identifiers + coordinates
-      if (barcode) u.searchParams.set('catracBarcode', barcode);
-      if (assetId) u.searchParams.set('assetId', assetId);
+      if (barcode)   u.searchParams.set('catracBarcode', barcode);
+      if (assetName) u.searchParams.set('assetName', assetName);
       if (lat != null && lon != null) {
         u.searchParams.set('lat', lat.toString());
         u.searchParams.set('lon', lon.toString());
@@ -56,7 +55,6 @@
           next(latitude, longitude, accuracy);
         },
         err => {
-          // If user denied or timed out, still continue to form so they can submit notes/photos
           statusEl.textContent = 'Could not get location (' + err.message + '). Continuing…';
           next(null, null, null);
         },
@@ -64,10 +62,8 @@
       );
     }
 
-    // Some iOS versions prefer a user gesture. Try once automatically, show a button if needed.
     try {
       getGPS();
-      // show retry button after a short delay in case prompt was blocked until a tap
       setTimeout(() => { retryBtn.style.display = 'inline-block'; }, 1200);
     } catch(e) {
       retryBtn.style.display = 'inline-block';
