@@ -1,38 +1,67 @@
 <script>
-  const params = new URLSearchParams(location.search);
-  const barcode  = params.get('catracBarcode') || params.get('b') || '';
-  const assetId  = params.get('assetId') || '';
-  const assetName = params.get('assetName') || '';   // <-- NEW
-  const formBase = 'https://form.jotform.com/252387737300054';
+  const params    = new URLSearchParams(location.search);
+  const barcode   = params.get('catracBarcode') || params.get('b') || '';
+  const assetId   = params.get('assetId') || '';
+  const assetName = params.get('assetName') || '';     // <-- read assetName
+  const debug     = params.get('debug') === '1';
+  const formBase  = 'https://form.jotform.com/252387737300054'; // your form
 
-  const statusEl = document.getElementById('status');
-  const retryBtn = document.getElementById('retry');
+  const statusEl  = document.getElementById('status');
+  const retryBtn  = document.getElementById('retry');
 
-  function next(lat, lon, acc) {
+  function buildFormUrl(lat, lon, acc) {
     const u = new URL(formBase);
     if (barcode)   u.searchParams.set('catracBarcode', barcode);
     if (assetId)   u.searchParams.set('assetId', assetId);
-    if (assetName) u.searchParams.set('assetName', assetName);  // <-- NEW
+    if (assetName) u.searchParams.set('assetName', assetName); // <-- forward assetName
     if (lat != null && lon != null) {
       u.searchParams.set('lat', lat.toString());
       u.searchParams.set('lon', lon.toString());
     }
     if (acc != null) u.searchParams.set('accuracy', Math.round(acc).toString());
-    location.replace(u.toString());
+    return u.toString();
+  }
+
+  function next(lat, lon, acc) {
+    const url = buildFormUrl(lat, lon, acc);
+    if (debug) {
+      statusEl.innerHTML = 'DEBUG: Not redirecting. Built Jotform URL:<br><code>' + url + '</code>';
+      retryBtn.style.display = 'none';
+      return;
+    }
+    location.replace(url);
   }
 
   function getGPS() {
-    if (!barcode) { statusEl.textContent = 'Missing barcode. This QR must include ?catracBarcode=VALUE'; return; }
-    if (!('geolocation' in navigator)) { statusEl.textContent = 'Geolocation not supported—continuing without GPS…'; next(null, null, null); return; }
+    if (!barcode) {
+      statusEl.textContent = 'Missing barcode. This QR must include ?catracBarcode=VALUE';
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      statusEl.textContent = 'Geolocation not supported—continuing without GPS…';
+      next(null, null, null);
+      return;
+    }
     statusEl.textContent = 'Requesting GPS…';
     navigator.geolocation.getCurrentPosition(
-      p => { const { latitude, longitude, accuracy } = p.coords; statusEl.textContent = 'Location captured. Opening form…'; next(latitude, longitude, accuracy); },
-      err => { statusEl.textContent = 'Could not get location (' + err.message + '). Continuing…'; next(null, null, null); },
+      p => {
+        const { latitude, longitude, accuracy } = p.coords;
+        statusEl.textContent = 'Location captured. Opening form…';
+        next(latitude, longitude, accuracy);
+      },
+      err => {
+        statusEl.textContent = 'Could not get location (' + err.message + '). Continuing…';
+        next(null, null, null);
+      },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   }
 
-  try { getGPS(); setTimeout(() => { retryBtn.style.display = 'inline-block'; }, 1200); }
-  catch (e) { retryBtn.style.display = 'inline-block'; }
+  try {
+    getGPS();
+    setTimeout(() => { retryBtn.style.display = 'inline-block'; }, 1200);
+  } catch (e) {
+    retryBtn.style.display = 'inline-block';
+  }
   retryBtn.addEventListener('click', getGPS);
 </script>
