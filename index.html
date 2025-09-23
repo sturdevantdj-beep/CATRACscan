@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CATRAC Asset Location Capture</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; line-height: 1.4; }
-    .muted { color: #666; font-size: 0.9rem; }
-    code { background:#f3f3f3; padding:2px 4px; border-radius:4px; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; margin:24px; line-height:1.4; }
+    .muted { color:#666; font-size:0.9rem; }
+    code { background:#f4f4f4; padding:2px 4px; border-radius:4px; }
+    pre { background:#f9f9f9; padding:8px; border-radius:6px; overflow:auto; }
   </style>
 </head>
 <body>
@@ -15,9 +16,9 @@
   <p class="muted">If prompted, tap <b>Allow</b> to share your location.</p>
   <p id="status">Preparing…</p>
 
-  <!-- ▼▼ REPLACE THIS with Form A's full "Source Code" for exact names/action ▼▼ -->
+  <!-- ▼▼ Replace this minimal form with your Jotform A "Source Code" for 100% name/action accuracy ▼▼ -->
   <form id="silentForm" method="post" action="https://submit.jotform.com/submit/252387737300054/">
-    <!-- The name= attributes MUST match Form A's input names from your exported source code -->
+    <!-- IMPORTANT: change each name= to match the input names in your Jotform Source Code -->
     <input type="hidden" name="catracBarcode" />
     <input type="hidden" name="assetId" />
     <input type="hidden" name="assetName" />
@@ -25,20 +26,39 @@
     <input type="hidden" name="lon" />
     <input type="hidden" name="accuracy" />
   </form>
-  <!-- ▲▲ END minimal form ▲▲ -->
+  <!-- ▲▲ End minimal form ▲▲ -->
 
   <script>
     const params    = new URLSearchParams(location.search);
     const barcode   = params.get('catracBarcode') || params.get('b') || '';
     const assetName = params.get('assetName') || '';
-    const assetId   = params.get('assetId') || '';
+    const assetId   = params.get('assetId') || ''; // use CASESAFEID(Id) in your Salesforce QR to get 18-char
+    const debug     = params.get('debug') === '1';
+
     const statusEl  = document.getElementById('status');
     const F         = document.getElementById('silentForm');
 
-    // Helper to set a hidden input by its name
     function setVal(name, val) {
       const el = F.querySelector(`[name="${name}"]`);
       if (el && val !== '' && val != null) el.value = val;
+      return !!el;
+    }
+
+    function payloadPreview() {
+      const obj = {};
+      F.querySelectorAll('input[name]').forEach(i => obj[i.name] = i.value);
+      return obj;
+    }
+
+    function validateRequired() {
+      // Make sure the inputs exist AND are filled before submit
+      const requiredNames = ['catracBarcode', 'assetId']; // adjust if Asset__c isn’t required
+      for (const n of requiredNames) {
+        const el = F.querySelector(`[name="${n}"]`);
+        if (!el) return { ok:false, msg:`Missing input element name="${n}" (check Jotform Source Code names)` };
+        if (!el.value) return { ok:false, msg:`Required value "${n}" is empty` };
+      }
+      return { ok:true };
     }
 
     function submitNow(lat, lon, acc) {
@@ -46,22 +66,37 @@
       setVal('catracBarcode', barcode);
       setVal('assetId', assetId);
       setVal('assetName', assetName);
-      // coordinates
+      // coordinates (optional)
       if (lat != null && lon != null) {
         setVal('lat', String(lat));
         setVal('lon', String(lon));
       }
       if (acc != null) setVal('accuracy', String(Math.round(acc)));
 
-      statusEl.textContent = 'Submitting…';
-      F.submit(); // Form A's Thank-You Page should redirect to the Salesforce Asset URL
+      // tiny delay to ensure DOM reflects values before submit
+      setTimeout(() => {
+        const check = validateRequired();
+        if (!check.ok) {
+          statusEl.innerHTML = '❌ ' + check.msg + (debug ? '<br><br><b>Payload:</b><pre>'+JSON.stringify(payloadPreview(), null, 2)+'</pre>' : '');
+          return;
+        }
+
+        if (debug) {
+          statusEl.innerHTML = '🔎 DEBUG MODE — not submitting. <br><br><b>Payload:</b><pre>'+JSON.stringify(payloadPreview(), null, 2)+'</pre>';
+          return;
+        }
+
+        statusEl.textContent = 'Submitting…';
+        F.submit(); // Jotform Thank-You should redirect to Salesforce Asset URL
+      }, 50);
     }
 
     function go() {
       if (!barcode) { statusEl.textContent = 'Missing barcode (?catracBarcode=).'; return; }
+      if (!assetId)  { statusEl.textContent = 'Missing assetId (?assetId=).'; return; }
 
       if (!('geolocation' in navigator)) {
-        statusEl.textContent = 'No GPS available—submitting without coordinates…';
+        statusEl.textContent = 'No GPS available — submitting without coordinates…';
         submitNow(null, null, null);
         return;
       }
