@@ -19,7 +19,8 @@
   <script>
     const params    = new URLSearchParams(location.search);
     const barcode   = params.get('catracBarcode') || params.get('b') || '';
-    const assetName = params.get('assetName') || '';   // switched to assetName
+    const assetName = params.get('assetName') || '';
+    const assetId   = params.get('assetId') || '';     // ✅ now grab assetId
     const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your form ID
 
     const statusEl = document.getElementById('status');
@@ -29,6 +30,7 @@
       const u = new URL(formBase);
       if (barcode)   u.searchParams.set('catracBarcode', barcode);
       if (assetName) u.searchParams.set('assetName', assetName);
+      if (assetId)   u.searchParams.set('assetId', assetId);   // ✅ forward assetId
       if (lat != null && lon != null) {
         u.searchParams.set('lat', lat.toString());
         u.searchParams.set('lon', lon.toString());
