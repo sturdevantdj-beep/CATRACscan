@@ -19,8 +19,9 @@
   <script>
     const params    = new URLSearchParams(location.search);
     const barcode   = params.get('catracBarcode') || params.get('b') || '';
-    const assetName = params.get('assetName') || '';   // switched to assetName
-    const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your form ID
+    const assetName = params.get('assetName') || '';
+    const assetId   = params.get('assetId') || '';  // keep assetId in the flow
+    const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your Jotform Form A URL
 
     const statusEl = document.getElementById('status');
     const retryBtn = document.getElementById('retry');
@@ -29,12 +30,13 @@
       const u = new URL(formBase);
       if (barcode)   u.searchParams.set('catracBarcode', barcode);
       if (assetName) u.searchParams.set('assetName', assetName);
+      if (assetId)   u.searchParams.set('assetId', assetId);
       if (lat != null && lon != null) {
         u.searchParams.set('lat', lat.toString());
         u.searchParams.set('lon', lon.toString());
       }
       if (acc != null) u.searchParams.set('accuracy', Math.round(acc).toString());
-      location.replace(u.toString());
+      location.replace(u.toString()); // redirect to Jotform with all params
     }
 
     function getGPS() {
@@ -62,10 +64,11 @@
       );
     }
 
+    // Try automatically; show a manual button in case iOS blocks the prompt until a tap
     try {
       getGPS();
       setTimeout(() => { retryBtn.style.display = 'inline-block'; }, 1200);
-    } catch(e) {
+    } catch {
       retryBtn.style.display = 'inline-block';
     }
     retryBtn.addEventListener('click', getGPS);
