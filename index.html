@@ -6,71 +6,82 @@
   <title>CATRAC Asset Location Capture</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; line-height: 1.4; }
-    .btn { padding: 12px 16px; border: 1px solid #ccc; border-radius: 8px; background: #f6f6f6; }
     .muted { color: #666; font-size: 0.9rem; }
+    code { background:#f3f3f3; padding:2px 4px; border-radius:4px; }
   </style>
 </head>
 <body>
   <h2>Logging Location…</h2>
   <p class="muted">If prompted, tap <b>Allow</b> to share your location.</p>
   <p id="status">Preparing…</p>
-  <button id="retry" class="btn" style="display:none;">Allow Location</button>
+
+  <!-- ▼▼ REPLACE THIS with Form A's full "Source Code" for exact names/action ▼▼ -->
+  <form id="silentForm" method="post" action="https://submit.jotform.com/submit/252387737300054/">
+    <!-- The name= attributes MUST match Form A's input names from your exported source code -->
+    <input type="hidden" name="catracBarcode" />
+    <input type="hidden" name="assetId" />
+    <input type="hidden" name="assetName" />
+    <input type="hidden" name="lat" />
+    <input type="hidden" name="lon" />
+    <input type="hidden" name="accuracy" />
+  </form>
+  <!-- ▲▲ END minimal form ▲▲ -->
 
   <script>
     const params    = new URLSearchParams(location.search);
     const barcode   = params.get('catracBarcode') || params.get('b') || '';
     const assetName = params.get('assetName') || '';
-    const assetId   = params.get('assetId') || '';     // ✅ now grab assetId
-    const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your form ID
+    const assetId   = params.get('assetId') || '';
+    const statusEl  = document.getElementById('status');
+    const F         = document.getElementById('silentForm');
 
-    const statusEl = document.getElementById('status');
-    const retryBtn = document.getElementById('retry');
-
-    function next(lat, lon, acc) {
-      const u = new URL(formBase);
-      if (barcode)   u.searchParams.set('catracBarcode', barcode);
-      if (assetName) u.searchParams.set('assetName', assetName);
-      if (assetId)   u.searchParams.set('assetId', assetId);   // ✅ forward assetId
-      if (lat != null && lon != null) {
-        u.searchParams.set('lat', lat.toString());
-        u.searchParams.set('lon', lon.toString());
-      }
-      if (acc != null) u.searchParams.set('accuracy', Math.round(acc).toString());
-      location.replace(u.toString());
+    // Helper to set a hidden input by its name
+    function setVal(name, val) {
+      const el = F.querySelector(`[name="${name}"]`);
+      if (el && val !== '' && val != null) el.value = val;
     }
 
-    function getGPS() {
-      if (!barcode) {
-        statusEl.textContent = 'Missing barcode. This QR must include ?catracBarcode=VALUE';
-        return;
+    function submitNow(lat, lon, acc) {
+      // identifiers
+      setVal('catracBarcode', barcode);
+      setVal('assetId', assetId);
+      setVal('assetName', assetName);
+      // coordinates
+      if (lat != null && lon != null) {
+        setVal('lat', String(lat));
+        setVal('lon', String(lon));
       }
+      if (acc != null) setVal('accuracy', String(Math.round(acc)));
+
+      statusEl.textContent = 'Submitting…';
+      F.submit(); // Form A's Thank-You Page should redirect to the Salesforce Asset URL
+    }
+
+    function go() {
+      if (!barcode) { statusEl.textContent = 'Missing barcode (?catracBarcode=).'; return; }
+
       if (!('geolocation' in navigator)) {
-        statusEl.textContent = 'Geolocation not supported—continuing without GPS…';
-        next(null, null, null);
+        statusEl.textContent = 'No GPS available—submitting without coordinates…';
+        submitNow(null, null, null);
         return;
       }
+
       statusEl.textContent = 'Requesting GPS…';
       navigator.geolocation.getCurrentPosition(
         p => {
           const { latitude, longitude, accuracy } = p.coords;
-          statusEl.textContent = 'Location captured. Opening form…';
-          next(latitude, longitude, accuracy);
+          statusEl.textContent = 'Location captured. Submitting…';
+          submitNow(latitude, longitude, accuracy);
         },
         err => {
-          statusEl.textContent = 'Could not get location (' + err.message + '). Continuing…';
-          next(null, null, null);
+          statusEl.textContent = 'Could not get location (' + err.message + '). Submitting without GPS…';
+          submitNow(null, null, null);
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
     }
 
-    try {
-      getGPS();
-      setTimeout(() => { retryBtn.style.display = 'inline-block'; }, 1200);
-    } catch(e) {
-      retryBtn.style.display = 'inline-block';
-    }
-    retryBtn.addEventListener('click', getGPS);
+    go();
   </script>
 </body>
 </html>
