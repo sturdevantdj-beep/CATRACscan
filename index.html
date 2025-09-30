@@ -15,7 +15,11 @@
   <p class="muted">If prompted, tap <b>Allow</b> to share your location.</p>
   <p id="status">Preparing…</p>
   <button id="retry" class="btn" style="display:none;">Allow Location</button> -->
-
+<h2>Logging Location…</h2>
+  <p class="muted">If prompted, tap <b>Allow</b> to share your location.</p>
+  <p id="status">Preparing…</p>
+  <button id="retry" class="btn" style="display:none;">Allow Location</button>
+  
   <script>
     const params    = new URLSearchParams(location.search);
     const barcode   = params.get('catracBarcode') || params.get('b') || '';
