@@ -44,8 +44,8 @@
     }
 
     function getGPS() {
-      if (!barcode) {
-        statusEl.textContent = 'Missing barcode. This QR must include ?catracBarcode=VALUE';
+      if (!assetId) {
+        statusEl.textContent = 'Missing assetId.';
         return;
       }
       if (!('geolocation' in navigator)) {
