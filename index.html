@@ -22,9 +22,9 @@
   
   <script>
     const params    = new URLSearchParams(location.search);
-    const barcode   = params.get('catracBarcode') || params.get('b') || '';
-    const assetName = params.get('assetName') || '';
-    const assetId   = params.get('assetId') || '';     // ✅ now grab assetId
+    //const barcode   = params.get('catracBarcode') || params.get('b') || '';
+    //const assetName = params.get('assetName') || '';
+    const assetId   = params.get('a') || '';     // ✅ now grab assetId
     const formBase  = 'https://form.jotform.com/252387737300054'; // <-- your form ID
 
     const statusEl = document.getElementById('status');
@@ -44,7 +44,7 @@
     }
 
     function getGPS() {
-      if (!assetId) {
+      if (!a) {
         statusEl.textContent = 'Missing assetId.';
         return;
       }
